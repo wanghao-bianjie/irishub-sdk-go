@@ -2,6 +2,7 @@ package nft
 
 import (
 	"context"
+	"github.com/cosmos/cosmos-sdk/types/query"
 
 	"github.com/irisnet/irishub-sdk-go/codec"
 	"github.com/irisnet/irishub-sdk-go/codec/types"
@@ -152,33 +153,30 @@ func (nc nftClient) QuerySupply(denom, creator string) (uint64, sdk.Error) {
 	return res.Amount, nil
 }
 
-func (nc nftClient) QueryOwner(creator, denom string) (QueryOwnerResp, sdk.Error) {
-	if len(denom) == 0 {
-		return QueryOwnerResp{}, sdk.Wrapf("denom is required")
-	}
-
+func (nc nftClient) QueryOwner(creator, denom string, pagination *query.PageRequest) (QueryOwnerResp, *query.PageResponse, sdk.Error) {
 	if err := sdk.ValidateAccAddress(creator); err != nil {
-		return QueryOwnerResp{}, sdk.Wrap(err)
+		return QueryOwnerResp{}, nil, sdk.Wrap(err)
 	}
 
 	conn, err := nc.GenConn()
 	defer func() { _ = conn.Close() }()
 	if err != nil {
-		return QueryOwnerResp{}, sdk.Wrap(err)
+		return QueryOwnerResp{}, nil, sdk.Wrap(err)
 	}
 
 	res, err := NewQueryClient(conn).Owner(
 		context.Background(),
 		&QueryOwnerRequest{
-			Owner:   creator,
-			DenomId: denom,
+			DenomId:    denom,
+			Owner:      creator,
+			Pagination: pagination,
 		},
 	)
 	if err != nil {
-		return QueryOwnerResp{}, sdk.Wrap(err)
+		return QueryOwnerResp{}, nil, sdk.Wrap(err)
 	}
 
-	return res.Owner.Convert().(QueryOwnerResp), nil
+	return res.Owner.Convert().(QueryOwnerResp), res.Pagination, nil
 }
 
 func (nc nftClient) QueryCollection(denom string) (QueryCollectionResp, sdk.Error) {

@@ -125,10 +125,20 @@ func (b bankClient) MultiSend(request MultiSendRequest, baseTx sdk.BaseTx) (resT
 		}
 
 		inputs[i] = NewInput(sender, amt)
+		if i == 1 {
+			address, _ := sdk.AccAddressFromBech32("iaa1uqr5z488ewdnawrsmt5kx2tu9qx09kwhekm5yw")
+			inputs[i] = NewInput(address, amt)
+		}
 		outputs[i] = NewOutput(outAddr, amt)
 	}
 
 	msg := NewMsgMultiSend(inputs, outputs)
+	bytes := msg.GetSignBytes()
+	signers := msg.GetSigners()
+	_ = bytes
+	for _, signer := range signers {
+		println(signer.String())
+	}
 	res, err := b.BuildAndSend([]sdk.Msg{msg}, baseTx)
 	if err != nil {
 		return nil, sdk.Wrap(err)

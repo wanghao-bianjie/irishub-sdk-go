@@ -52,6 +52,10 @@ func newBuilder() *wrapper {
 }
 
 func (w *wrapper) GetMsgs() []sdk.Msg {
+	signers := w.tx.GetSigners()
+	for _, signer := range signers {
+		println(signer.String())
+	}
 	return w.tx.GetMsgs()
 }
 

@@ -1,6 +1,9 @@
 package nft
 
-import sdk "github.com/irisnet/irishub-sdk-go/types"
+import (
+	"github.com/cosmos/cosmos-sdk/types/query"
+	sdk "github.com/irisnet/irishub-sdk-go/types"
+)
 
 // expose NFT module api for user
 type Client interface {
@@ -13,7 +16,7 @@ type Client interface {
 	BurnNFT(request BurnNFTRequest, baseTx sdk.BaseTx) (sdk.ResultTx, sdk.Error)
 
 	QuerySupply(denomID, creator string) (uint64, sdk.Error)
-	QueryOwner(creator, denomID string) (QueryOwnerResp, sdk.Error)
+	QueryOwner(creator, denomID string, pagination *query.PageRequest) (QueryOwnerResp, *query.PageResponse, sdk.Error)
 	QueryCollection(denomID string) (QueryCollectionResp, sdk.Error)
 	QueryDenom(denomID string) (QueryDenomResp, sdk.Error)
 	QueryDenoms() ([]QueryDenomResp, sdk.Error)

@@ -194,6 +194,32 @@ func (f *Factory) BuildAndSign(name string, msgs []sdk.Msg, json bool) ([]byte, 
 	return txBytes, nil
 }
 
+func (f *Factory) BuildAndSignMulti(names []string, accounts []sdk.BaseAccount, msgs []sdk.Msg, json bool) ([]byte, error) {
+	tx, err := f.BuildUnsignedTx(msgs)
+	if err != nil {
+		return nil, err
+	}
+
+	if err = f.SignMulti(names, accounts, tx); err != nil {
+		return nil, err
+	}
+
+	if json {
+		txBytes, err := f.txConfig.TxJSONEncoder()(tx.GetTx())
+		if err != nil {
+			return nil, err
+		}
+		return txBytes, nil
+	}
+
+	txBytes, err := f.txConfig.TxEncoder()(tx.GetTx())
+	if err != nil {
+		return nil, err
+	}
+
+	return txBytes, nil
+}
+
 func (f *Factory) BuildUnsignedTx(msgs []sdk.Msg) (sdk.TxBuilder, error) {
 	if f.chainID == "" {
 		return nil, fmt.Errorf("chain ID required but not specified")
@@ -297,4 +323,74 @@ func (f *Factory) Sign(name string, txBuilder sdk.TxBuilder) error {
 
 	// And here the tx is populated with the signature
 	return txBuilder.SetSignatures(sig)
+}
+
+func (f *Factory) SignMulti(names []string, accounts []sdk.BaseAccount, txBuilder sdk.TxBuilder) error {
+	signMode := f.signMode
+	if signMode == signing.SignMode_SIGN_MODE_UNSPECIFIED {
+		// use the SignModeHandler's default mode if unspecified
+		signMode = f.txConfig.SignModeHandler().DefaultMode()
+	}
+
+	var sigs []signing.SignatureV2
+	var signerDatas []sdk.SignerData
+	for i, name := range names {
+		signerData := sdk.SignerData{
+			ChainID:       f.chainID,
+			AccountNumber: accounts[i].AccountNumber,
+			Sequence:      accounts[i].Sequence,
+		}
+
+		pubkey, _, err := f.keyManager.Find(name, f.password)
+		if err != nil {
+			return err
+		}
+
+		sigData := signing.SingleSignatureData{
+			SignMode:  signMode,
+			Signature: nil,
+		}
+		sig := signing.SignatureV2{
+			PubKey:   pubkey,
+			Data:     &sigData,
+			Sequence: accounts[i].Sequence,
+		}
+		sigs = append(sigs, sig)
+		signerDatas = append(signerDatas, signerData)
+	}
+
+	if err := txBuilder.SetSignatures(sigs...); err != nil {
+		return err
+	}
+
+	for i, name := range names {
+
+		// Generate the bytes to be signed.
+		signBytes, err := f.signModeHandler.GetSignBytes(signMode, signerDatas[i], txBuilder.GetTx())
+		if err != nil {
+			return err
+		}
+
+		// Sign those bytes
+		sigBytes, _, err := f.keyManager.Sign(name, f.password, signBytes)
+		if err != nil {
+			return err
+		}
+
+		// Construct the SignatureV2 struct
+		sigData := signing.SingleSignatureData{
+			SignMode:  signMode,
+			Signature: sigBytes,
+		}
+		pubkey, _, err := f.keyManager.Find(name, f.password)
+		if err != nil {
+			return err
+		}
+		sigs[i] = signing.SignatureV2{
+			PubKey:   pubkey,
+			Data:     &sigData,
+			Sequence: accounts[i].Sequence,
+		}
+	}
+	return txBuilder.SetSignatures(sigs...)
 }

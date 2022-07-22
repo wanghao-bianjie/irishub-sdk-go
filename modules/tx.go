@@ -113,6 +113,35 @@ func (base *baseClient) buildTx(msgs []sdk.Msg, baseTx sdk.BaseTx) ([]byte, *cli
 	return txByte, builder, nil
 }
 
+func (base *baseClient) buildTxMulti(msgs []sdk.Msg, baseTx sdk.BaseTx, names []string) ([]byte, *clienttx.Factory, sdk.Error) {
+	builder, err := base.prepare(baseTx)
+	if err != nil {
+		return nil, builder, sdk.Wrap(err)
+	}
+
+	var accounts []sdk.BaseAccount
+	for _, name := range names {
+		address, err := base.QueryAddress(name, baseTx.Password)
+		println(address.String())
+		if err != nil {
+			return nil, nil, sdk.Wrap(err)
+		}
+		account, err := base.QueryAccount(address.String())
+		if err != nil {
+			return nil, nil, sdk.Wrap(err)
+		}
+		accounts = append(accounts, account)
+
+	}
+	txByte, err := builder.BuildAndSignMulti(names, accounts, msgs, false)
+	if err != nil {
+		return nil, builder, sdk.Wrap(err)
+	}
+
+	base.Logger().Debug("sign transaction success")
+	return txByte, builder, nil
+}
+
 func (base *baseClient) buildTxWithAccount(addr string, accountNumber, sequence uint64, msgs []sdk.Msg, baseTx sdk.BaseTx) ([]byte, *clienttx.Factory, sdk.Error) {
 	builder, err := base.prepareTemp(addr, accountNumber, sequence, baseTx)
 	if err != nil {

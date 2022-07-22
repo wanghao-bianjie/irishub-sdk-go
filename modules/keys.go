@@ -86,6 +86,7 @@ func (k keyManager) Recover(name, password, mnemonic, hdPath string) (string, er
 	_, priv := km.Generate()
 
 	pubKey := km.ExportPubKey()
+
 	address := types.AccAddress(pubKey.Address().Bytes()).String()
 
 	info := store.KeyInfo{

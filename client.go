@@ -2,7 +2,6 @@ package sdk
 
 import (
 	"fmt"
-
 	"github.com/irisnet/irishub-sdk-go/modules/coinswap"
 	"github.com/irisnet/irishub-sdk-go/modules/gov"
 	"github.com/irisnet/irishub-sdk-go/modules/htlc"
@@ -65,6 +64,7 @@ func NewIRISHUBClient(cfg types.ClientConfig) IRISHUBClient {
 	oracleClient := oracle.NewClient(baseClient, encodingConfig.Marshaler)
 	htlcClient := htlc.NewClient(baseClient, encodingConfig.Marshaler)
 	swapClient := coinswap.NewClient(baseClient, encodingConfig.Marshaler, bankClient.TotalSupply)
+	//tibcClient := tibc.NewClient(baseClient, encodingConfig.Marshaler)
 
 	client := &IRISHUBClient{
 		logger:         baseClient.Logger(),
@@ -83,6 +83,7 @@ func NewIRISHUBClient(cfg types.ClientConfig) IRISHUBClient {
 		Oracle:         oracleClient,
 		HTLC:           htlcClient,
 		Swap:           swapClient,
+		//Tibc:           tibcClient,
 	}
 
 	client.RegisterModule(
@@ -97,6 +98,7 @@ func NewIRISHUBClient(cfg types.ClientConfig) IRISHUBClient {
 		oracleClient,
 		htlcClient,
 		swapClient,
+		//tibcClient,
 	)
 	return *client
 }
